@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, FlatList, TextInput, Button } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import TaskItem from './TaskItem';
 import { Task } from './types';
 import { styles } from './styles';
@@ -8,12 +9,37 @@ export default function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [taskText, setTaskText] = useState('');
 
+  // Load tasks from AsyncStorage when component mounts
+  useEffect(() => {
+    const loadTasks = async () => {
+      try {
+        const tasksString = await AsyncStorage.getItem('tasks');
+        if (tasksString) {
+          setTasks(JSON.parse(tasksString));
+        }
+      } catch (error) {
+        console.error('Failed to load tasks from AsyncStorage', error);
+      }
+    };
+    loadTasks();
+  }, []);
+
+  // Save tasks to AsyncStorage whenever tasks change
+  useEffect(() => {
+    const saveTasks = async () => {
+      try {
+        await AsyncStorage.setItem('tasks', JSON.stringify(tasks));
+      } catch (error) {
+        console.error('Failed to save tasks to AsyncStorage', error);
+      }
+    };
+    saveTasks();
+  }, [tasks]);
+
   const addTask = () => {
     if (taskText.trim()) {
-      setTasks(prevTasks => [
-        ...prevTasks,
-        { id: Date.now().toString(), text: taskText, completed: false },
-      ]);
+      const newTask = { id: Date.now().toString(), text: taskText, completed: false };
+      setTasks(prevTasks => [...prevTasks, newTask]);
       setTaskText('');
     }
   };
